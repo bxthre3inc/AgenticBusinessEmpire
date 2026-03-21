@@ -55,11 +55,18 @@ async def infer_intent(prompt: str) -> dict:
     """
     Use an LLM (or fallback parser) to convert natural language into a structured AgentOS action payload.
     """
-    if _OPENAI_AVAILABLE and os.getenv("OPENAI_API_KEY"):
+    api_key   = os.getenv("OPENAI_API_KEY", "zo-local-override")
+    base_url  = os.getenv("AGENTOS_LLM_URL", "http://zo-server-ip:11434/v1")
+    model_id  = os.getenv("AGENTOS_LLM_MODEL", "llama3")
+    
+    if _OPENAI_AVAILABLE:
         try:
-            client = openai.AsyncOpenAI()
+            client = openai.AsyncOpenAI(
+                api_key=api_key,
+                base_url=base_url
+            )
             response = await client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=model_id,
                 messages=[
                     {"role": "system", "content": "You are AgentOS. Extract the action from the user prompt into JSON. Available actions: 'budget', 'expense', 'onboard'. Include args like 'amount', 'department', 'name', 'role'."},
                     {"role": "user", "content": prompt}
@@ -68,7 +75,7 @@ async def infer_intent(prompt: str) -> dict:
             )
             return json.loads(response.choices[0].message.content)
         except Exception as e:
-            logger.warning("[Inference Node] LLM failed, using fallback regex. Error: %s", e)
+            logger.warning("[Inference Node] LLM failed at %s, using fallback regex. Error: %s", base_url, e)
     
     # Fallback RegEx Parser if no LLM or key is available
     logger.info("[Inference Node] Using fallback regex parser for prompt: '%s'", prompt)
