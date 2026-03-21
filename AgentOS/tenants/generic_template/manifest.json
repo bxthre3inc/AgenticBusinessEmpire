@@ -1,0 +1,8 @@
+{
+  "tenant_id": "generic_template",
+  "status": "baseline",
+  "description": "A baseline clean-room template for instantiating new Bxthre3 subsidiaries.",
+  "clearance_required": 2,
+  "budget_limit_usd": 1000.0,
+  "entrypoint": "logic.base_operation.GenericOperation"
+}

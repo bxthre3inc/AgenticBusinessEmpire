@@ -43,6 +43,17 @@ class HRAgent:
         rows = await db.execute(sql, emp_id)
         return rows[0]["clearance_level"] if rows else 0
 
+    async def revoke_clearance(self, emp_id: str) -> dict:
+        """Autonomously lock out compromised generic tenants or employees."""
+        sql = "UPDATE bxthre3_employees SET clearance_level = 0 WHERE emp_id = $1"
+        try:
+            await db.execute(sql, emp_id)
+            logger.info("[HR] Clearance revoked for emp_id: %s.", emp_id)
+            return {"status": "success", "emp_id": emp_id, "clearance": 0}
+        except Exception as exc:
+            logger.error("[HR] Clearance revocation failed for %s: %s", emp_id, exc)
+            return {"status": "failed", "error": str(exc)}
+
 if __name__ == "__main__":
     hr = HRAgent()
     # Mock onboarding for testing

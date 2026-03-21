@@ -189,7 +189,7 @@ CREATE INDEX IF NOT EXISTS idx_tasks_tenant_status
 """
 
 
-import schema
+from AgentOS.kernel import schema
 
 async def migrate() -> None:
     """Apply schema DDL.  Safe to call on every startup."""

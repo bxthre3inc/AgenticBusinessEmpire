@@ -29,7 +29,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-VALID_TENANTS = {"tenant_zero", "product_alpha", "subsidiary_beta"}
+VALID_TENANTS = {"tenant_zero", "product_alpha", "subsidiary_beta", "generic_template"}
 
 
 @dataclass

@@ -41,7 +41,23 @@ class OpsAgent:
         """Summarize expenses for a department."""
         sql = "SELECT SUM(amount) as total FROM bxthre3_corporate_ledger WHERE department = $1"
         rows = await db.execute(sql, dept)
-        return {"department": dept, "total_spent": float(rows[0]["total"] or 0.0)}
+        total = rows[0]["total"] if rows else 0.0
+        return {"department": dept, "total_spent": float(total or 0.0)}
+
+    async def validate_budget(self, dept: str, request_amount: float) -> bool:
+        """Enforce hard financial stops on generic tenants."""
+        status = await self.get_budget_status(dept)
+        total_spent = status.get("total_spent", 0.0)
+        # Baseline limit for generic templates is 1000.0, as per default manifest
+        limit = 1000.0
+        
+        if total_spent + request_amount > limit:
+            logger.warning("[Ops] Budget exceeded for %s. Limit: %.2f, Requested: %.2f, Spent: %.2f", 
+                           dept, limit, request_amount, total_spent)
+            return False
+            
+        logger.info("[Ops] Budget check passed for %s. Remaining: %.2f", dept, limit - (total_spent + request_amount))
+        return True
 
 if __name__ == "__main__":
     ops = OpsAgent()
