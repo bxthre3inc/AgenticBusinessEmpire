@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Zo ↔ Antigravity Sync</title>
+  <title>AgentOS Client</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/css/style.css" />
@@ -15,10 +15,8 @@
 
   <header class="header">
     <div class="header-brand">
-      <span class="brand-zo">Zo</span>
-      <span class="brand-sep">↔</span>
-      <span class="brand-ag">Antigravity</span>
-      <span class="brand-tag">Sync v1.0</span>
+      <span class="brand-ao" style="color:var(--ao);font-weight:800;letter-spacing:-1px">AgentOS</span>
+      <span class="brand-tag">Client v2.0 (Standalone)</span>
     </div>
     <div class="header-status">
       <span id="ws-dot" class="status-dot offline"></span>
@@ -81,7 +79,8 @@
 
   <!-- Tab nav -->
   <nav class="tab-nav" role="tablist">
-    <button class="tab active" data-tab="events" role="tab">Events</button>
+    <button class="tab tab-ao active" data-tab="ao" role="tab">War Room</button>
+    <button class="tab" data-tab="events" role="tab">Events</button>
     <button class="tab" data-tab="workspace" role="tab">Workspace</button>
     <button class="tab" data-tab="commands" role="tab">Commands</button>
     <button class="tab" data-tab="features" role="tab">Features</button>
@@ -90,16 +89,15 @@
     <button class="tab" data-tab="messages" role="tab">Messages</button>
     <button class="tab" data-tab="actionslog" role="tab">Actions Log</button>
     <div class="nav-divider"></div>
-    <button class="tab tab-zo" data-tab="zo" role="tab">Zo Cockpit</button>
-    <button class="tab tab-ag" data-tab="ag" role="tab">Antigravity Cockpit</button>
-    <button class="tab tab-ao" data-tab="ao" role="tab">AgentOS Cockpit</button>
+    <button class="tab tab-zo" data-tab="zo" role="tab">Zo</button>
+    <button class="tab tab-ag" data-tab="ag" role="tab">Antigravity</button>
   </nav>
 
   <!-- Panels -->
   <main class="panels">
 
     <!-- Events -->
-    <section class="panel active" id="panel-events">
+    <section class="panel" id="panel-events">
       <div class="panel-header">
         <h2>Live Event Stream</h2>
         <button class="btn-ghost" id="btn-clear-events">Clear</button>
@@ -259,7 +257,7 @@
     </section>
 
     <!-- AgentOS Cockpit -->
-    <section class="panel" id="panel-ao">
+    <section class="panel active" id="panel-ao">
       <div class="panel-header"><h2>AgentOS War Room</h2></div>
       <div class="cockpit-grid">
         <div class="cockpit-card">

@@ -23,87 +23,83 @@ logger = logging.getLogger("agentos.schema")
 
 SUBSIDIARY_HEALTH_DDL = """
 CREATE TABLE IF NOT EXISTS subsidiary_health (
-    id              BIGSERIAL       PRIMARY KEY,
+    id              INTEGER         PRIMARY KEY AUTOINCREMENT,
     tenant_id       TEXT            NOT NULL DEFAULT 'subsidiary_beta',
     subsidiary      TEXT            NOT NULL,           -- e.g. 'irrig8'
-    recorded_at     TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    recorded_at     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     metric_name     TEXT            NOT NULL,           -- e.g. 'active_sensors'
-    metric_value    DOUBLE PRECISION,
-    metric_meta     JSONB           NOT NULL DEFAULT '{}',
-    lat             DOUBLE PRECISION,
-    lon             DOUBLE PRECISION,
+    metric_value    REAL,
+    metric_meta     TEXT            NOT NULL DEFAULT '{}',
+    lat             REAL,
+    lon             REAL,
     CONSTRAINT chk_subsidiary_health_tenant
         CHECK (tenant_id IN ('tenant_zero','product_alpha','subsidiary_beta'))
 );
 CREATE INDEX IF NOT EXISTS idx_sh_lat_lon
     ON subsidiary_health (lat, lon);
 CREATE INDEX IF NOT EXISTS idx_sh_subsidiary_metric
-    ON subsidiary_health (subsidiary, metric_name, recorded_at DESC);
+    ON subsidiary_health (subsidiary, metric_name, recorded_at);
 """
 
 PRODUCT_ROADMAP_DDL = """
 CREATE TABLE IF NOT EXISTS product_roadmap (
-    id              BIGSERIAL       PRIMARY KEY,
+    id              INTEGER         PRIMARY KEY AUTOINCREMENT,
     tenant_id       TEXT            NOT NULL DEFAULT 'product_alpha',
     product         TEXT            NOT NULL,           -- e.g. 'starting5'
     feature_id      TEXT            NOT NULL,
     feature_name    TEXT            NOT NULL,
     status          TEXT            NOT NULL DEFAULT 'pending',
-    readiness_score SMALLINT        NOT NULL DEFAULT 0 CHECK (readiness_score BETWEEN 0 AND 100),
-    created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
-    updated_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
-    meta            JSONB           NOT NULL DEFAULT '{}',
-    CONSTRAINT chk_product_roadmap_status
-        CHECK (status IN ('pending','in_progress','complete','blocked')),
+    readiness_score INTEGER         NOT NULL DEFAULT 0,
+    created_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    meta            TEXT            NOT NULL DEFAULT '{}',
     UNIQUE (product, feature_id)
 );
 CREATE INDEX IF NOT EXISTS idx_pr_product_status
-    ON product_roadmap (product, status, readiness_score DESC);
+    ON product_roadmap (product, status, readiness_score);
 """
 
 RECURSIVE_LOGS_DDL = """
 CREATE TABLE IF NOT EXISTS recursive_logs (
-    id              BIGSERIAL       PRIMARY KEY,
+    id              INTEGER         PRIMARY KEY AUTOINCREMENT,
     tenant_id       TEXT            NOT NULL DEFAULT 'tenant_zero',
     patch_id        TEXT            NOT NULL UNIQUE,    -- uuid of the self-patch TCO
-    applied_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    applied_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     target_file     TEXT            NOT NULL,
     description     TEXT,
     diff_summary    TEXT,
     outcome         TEXT            NOT NULL DEFAULT 'success',
-    meta            JSONB           NOT NULL DEFAULT '{}',
-    CONSTRAINT chk_recursive_logs_outcome
-        CHECK (outcome IN ('success','failed','rolled_back'))
+    meta            TEXT            NOT NULL DEFAULT '{}'
 );
 CREATE INDEX IF NOT EXISTS idx_rl_applied_at
-    ON recursive_logs (applied_at DESC);
+    ON recursive_logs (applied_at);
 """
 
 BXTHREE3_EMPLOYEES_DDL = """
 CREATE TABLE IF NOT EXISTS bxthre3_employees (
-    emp_id          UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
+    emp_id          TEXT            PRIMARY KEY,
     name            TEXT            NOT NULL,
     department      TEXT            NOT NULL,           -- e.g. 'kernel', 'product', 'agtech', 'corp'
     role            TEXT            NOT NULL,
-    clearance_level SMALLINT        NOT NULL DEFAULT 1 CHECK (clearance_level BETWEEN 1 AND 5),
-    joined_at       TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    clearance_level INTEGER         NOT NULL DEFAULT 1,
+    joined_at       DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status          TEXT            NOT NULL DEFAULT 'active'
 );
 CREATE INDEX IF NOT EXISTS idx_emp_dept_clearance
-    ON bxthre3_employees (department, clearance_level DESC);
+    ON bxthre3_employees (department, clearance_level);
 """
 
 BXTHREE3_CORPORATE_LEDGER_DDL = """
 CREATE TABLE IF NOT EXISTS bxthre3_corporate_ledger (
-    entry_id        BIGSERIAL       PRIMARY KEY,
-    recorded_at     TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
-    amount          NUMERIC(15,2)   NOT NULL,
+    entry_id        INTEGER         PRIMARY KEY AUTOINCREMENT,
+    recorded_at     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    amount          REAL            NOT NULL,
     description     TEXT            NOT NULL,
     department      TEXT            NOT NULL,           -- attribution
-    meta            JSONB           NOT NULL DEFAULT '{}'
+    meta            TEXT            NOT NULL DEFAULT '{}'
 );
 CREATE INDEX IF NOT EXISTS idx_cl_date_dept
-    ON bxthre3_corporate_ledger (recorded_at DESC, department);
+    ON bxthre3_corporate_ledger (recorded_at, department);
 """
 
 ALL_DDL = [
@@ -112,12 +108,20 @@ ALL_DDL = [
 ]
 
 
-async def apply(pool: Any) -> None:
-    """Apply all DDL statements.  Safe to call on every startup."""
-    async with pool.acquire() as conn:
+async def apply(pool: Any = None) -> None:
+    """Apply all DDL statements using its own SQLite loop (standalone)."""
+    import aiosqlite
+    import os
+    _DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "runtime", "agentos.db")
+    
+    async with aiosqlite.connect(_DB_PATH) as db:
         for ddl in ALL_DDL:
-            await conn.execute(ddl)
-    logger.info("[schema] Master Ledger DDL applied (subsidiary_health, product_roadmap, recursive_logs).")
+            try:
+                await db.executescript(ddl)
+            except Exception as e:
+                logger.error(f"Failed to apply DDL: {e}")
+        await db.commit()
+    logger.info("[schema] Master Ledger SQLite Schema applied.")
 
 
 # ---------------------------------------------------------------------------

@@ -15,6 +15,7 @@ sys.path.insert(0, ROOT)
 
 from sync_engine.mcp_server import run_mcp
 from sync_engine.api import run_dashboard
+from kernel import schema
 
 
 def run_ide_server():
@@ -40,14 +41,19 @@ def run_mesh():
     import time
 
     print("\n\033[1;35m Zo ↔ Antigravity ↔ AgentOS 3-Way Mesh starting...\033[0m")
-    print("\033[34m[1/3] Launching Sync Engine Dashboard on :7880...\033[0m")
+    
+    # Initialize Standalone DB
+    print("\033[34m[0/4] Initializing AgentOS Master Ledger (SQLite)...\033[0m")
+    asyncio.run(schema.apply())
+
+    print("\033[34m[1/4] Launching Sync Engine Dashboard on :7880...\033[0m")
     threading.Thread(target=run_dashboard, daemon=True).start()
 
-    print("\033[34m[2/3] Launching Antigravity IDE Server on :7881...\033[0m")
+    print("\033[34m[3/4] Launching Antigravity IDE Server on :7881...\033[0m")
     threading.Thread(target=run_ide_server, daemon=True).start()
 
     time.sleep(1)
-    print("\033[34m[3/3] Launching Hub MCP Server on stdio (READY)\033[0m\n")
+    print("\033[34m[4/4] Launching Hub MCP Server on stdio (READY)\033[0m\n")
     run_mcp()
 
 

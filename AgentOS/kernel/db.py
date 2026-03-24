@@ -35,12 +35,18 @@ logger = logging.getLogger("agentos.db")
 # Optional asyncpg import — degrades gracefully for dry-run environments
 # ---------------------------------------------------------------------------
 try:
-    import asyncpg                          # type: ignore
-    _PG_AVAILABLE = True
+    import aiosqlite                          # type: ignore
+    _SQLITE_AVAILABLE = True
 except ImportError:
-    asyncpg = None                          # type: ignore
-    _PG_AVAILABLE = False
-    logger.warning("asyncpg not installed — DB layer running in STUB mode.")
+    aiosqlite = None                          # type: ignore
+    _SQLITE_AVAILABLE = False
+    logger.warning("aiosqlite not installed — DB layer running in STUB mode.")
+
+# ---------------------------------------------------------------------------
+# Connection string (local file for standalone)
+# ---------------------------------------------------------------------------
+_DB_PATH = os.path.join(_AGENTOS_DIR, "runtime", "agentos.db")
+_pool: Any = None   # For sqlite, we'll manage a persistent connection or simple calls
 
 # ---------------------------------------------------------------------------
 # Pool singleton
@@ -89,22 +95,28 @@ async def execute(
     fetch: bool = True,
 ) -> list[dict] | str:
     """
-    Run a parameterised query with latency tracking.
-
-    If asyncpg is not available, returns a stub result.
+    Run a parameterised query with SQLite.
     """
-    if not _PG_AVAILABLE or _pool is None:
+    if not _SQLITE_AVAILABLE:
         logger.debug("[DB STUB] sql=%s  args=%s", sql[:80], args)
         return [] if fetch else "STUB_OK"
 
+    # SQLite uses ? instead of $1
+    sql = sql.replace("$1", "?").replace("$2", "?").replace("$3", "?").replace("$4", "?").replace("$5", "?").replace("$6", "?")
+
     t0 = time.perf_counter()
     try:
-        async with _pool.acquire() as conn:
+        async with aiosqlite.connect(_DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
             if fetch:
-                rows = await conn.fetch(sql, *args)
-                result = [dict(r) for r in rows]
+                async with db.execute(sql, args) as cursor:
+                    rows = await cursor.fetchall()
+                    result = [dict(r) for r in rows]
             else:
-                result = await conn.execute(sql, *args)
+                await db.execute(sql, args)
+                await db.commit()
+                result = "OK"
+        
         elapsed = (time.perf_counter() - t0) * 1e3
         _check_latency(elapsed, sql)
         return result

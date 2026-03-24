@@ -55,8 +55,9 @@ async def infer_intent(prompt: str) -> dict:
     """
     Use an LLM (or fallback parser) to convert natural language into a structured AgentOS action payload.
     """
-    api_key   = os.getenv("OPENAI_API_KEY", "zo-local-override")
-    base_url  = os.getenv("AGENTOS_LLM_URL", "http://zo-server-ip:11434/v1")
+    api_key   = os.getenv("OPENAI_API_KEY", "standalone-agentos")
+    # For standalone, we prioritize local Ollama or similar proxy
+    base_url  = os.getenv("AGENTOS_LLM_URL", "http://localhost:11434/v1")
     model_id  = os.getenv("AGENTOS_LLM_MODEL", "llama3")
     
     if _OPENAI_AVAILABLE:
