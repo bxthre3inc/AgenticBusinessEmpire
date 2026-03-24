@@ -380,17 +380,31 @@ async function loadAGCockpit() {
 }
 
 async function loadAOCockpit() {
-  const workers = document.getElementById('ao-workforce');
-  workers.innerHTML = [
-    { name: 'Ops Agent', task: 'Monitoring Mesh', state: 'active' },
-    { name: 'Dev Agent', task: 'Refactoring auth.py', state: 'idle' },
-    { name: 'Security Agent', task: 'Vulnerability Scan', state: 'active' }
-  ].map(w => `
-    <div class="cmd-item" style="padding:8px;grid-template-columns:1fr auto">
-      <div style="font-weight:600">${w.name}: <span style="font-weight:400;color:var(--text-muted)">${w.task}</span></div>
-      <span class="cmd-status ${w.state === 'active' ? 'done' : 'queued'}" style="font-size:9px">${w.state}</span>
-    </div>
-  `).join('');
+  const workersEl = document.getElementById('ao-workforce');
+  const objectiveEl = document.getElementById('ao-objective');
+  const progressEl = document.querySelector('#ao-progress .progress-fill');
+
+  try {
+    const [wData, sData] = await Promise.all([
+      get('/api/agentos/workforce'),
+      get('/api/agentos/status')
+    ]);
+
+    if (workersEl) {
+      workersEl.innerHTML = (wData.workforce || []).map(w => `
+        <div class="cmd-item" style="padding:8px;grid-template-columns:1fr auto">
+          <div style="font-weight:600">${w.name}: <span style="font-weight:400;color:var(--text-muted)">${w.task}</span></div>
+          <span class="cmd-status ${w.state === 'active' ? 'done' : 'queued'}" style="font-size:9px">${w.state}</span>
+        </div>
+      `).join('') || '<div class="empty-state">No workforce active</div>';
+    }
+
+    if (objectiveEl) objectiveEl.textContent = sData.objective || 'Idle';
+    if (progressEl)  progressEl.style.width = `${sData.progress || 0}%`;
+
+  } catch (err) {
+    console.error('Failed to load AgentOS Cockpit:', err);
+  }
 }
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
