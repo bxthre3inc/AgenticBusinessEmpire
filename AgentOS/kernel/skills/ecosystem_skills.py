@@ -5,6 +5,7 @@ Stubs and handlers for v1.0 third-party tool integration.
 import logging
 import json
 import httpx
+import os
 from AgentOS.kernel.registry import registry
 from AgentOS.core.models import TaskContext
 from AgentOS.core import config

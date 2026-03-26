@@ -2,7 +2,7 @@
 workforce_manager.py — AgentOS Onboarding Utility
 Simplifies hiring and assignment of employees across the conglomerate.
 """
-import db
+from AgentOS.core.db import RQE as db
 import json
 import logging
 
@@ -12,23 +12,14 @@ async def add_employee(company_id: str, dept_id: str, role: str, employee_type: 
     """Add a new employee to the workforce registry."""
     employee_id = f"{employee_type}_{role.lower()}_{name.lower().replace(' ', '_') if name else 'instance'}"
     
-    async with await db.get_db() as conn:
-        await conn.execute("""
-            INSERT INTO workforce (employee_id, company_id, department_id, employee_type, name)
-            VALUES (?, ?, ?, ?, ?)
-        """, (employee_id, company_id, dept_id, employee_type, name or employee_id))
-        
-        await conn.commit()
+    await db.execute("""
+        INSERT INTO workforce (employee_id, company_id, department_id, employee_type, name, role)
+        VALUES ($1, $2, $3, $4, $5, $6)
+    """, employee_id, company_id, dept_id, employee_type, name or employee_id, role, fetch=False)
         
     logger.info(f"Hired {employee_type} as {role} in {dept_id} for {company_id}")
     return {"status": "ok", "employee_id": employee_id}
 
 async def list_roster(company_id: str):
     """Get the full roster for a specific company."""
-    async with await db.get_db() as conn:
-        cursor = await conn.execute(
-            "SELECT * FROM workforce WHERE company_id = ?",
-            (company_id,)
-        )
-        roster = await cursor.fetchall()
-        return [dict(r) for r in roster]
+    return await db.execute("SELECT * FROM workforce WHERE company_id = $1", company_id)
