@@ -55,4 +55,4 @@ graph TD
 ---
 
 © 2026 **Bxthre3 Inc.** All Rights Reserved. 
-Designed for the Foxxd S67 and Zo Hosted Cloud.
+Designed for the Foxxd S67 and Kali/Linux Cockpits. Powered by Zo Hosted Cloud.

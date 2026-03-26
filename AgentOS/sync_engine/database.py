@@ -101,6 +101,99 @@ async def init_db():
                 last_active     TEXT DEFAULT (datetime('now'))
             );
 
+            CREATE TABLE IF NOT EXISTS boards (
+                board_id        TEXT PRIMARY KEY,
+                company_id      TEXT NOT NULL,
+                name            TEXT NOT NULL,
+                config_json     TEXT, -- schema, views
+                created_at      TEXT DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS cells (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                board_id        TEXT NOT NULL,
+                row_id          TEXT NOT NULL,
+                col_name        TEXT NOT NULL,
+                value           TEXT,
+                last_updated    TEXT DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS docs (
+                doc_id          TEXT PRIMARY KEY,
+                company_id      TEXT NOT NULL,
+                title           TEXT NOT NULL,
+                owner_id        TEXT NOT NULL,
+                department      TEXT DEFAULT 'general',
+                created_at      TEXT DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS doc_blocks (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                doc_id          TEXT NOT NULL,
+                block_type      TEXT NOT NULL,
+                content         TEXT,
+                position        INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS invoices (
+                invoice_id      TEXT PRIMARY KEY,
+                company_id      TEXT NOT NULL,
+                entity_id       TEXT NOT NULL,
+                amount          REAL NOT NULL,
+                currency        TEXT DEFAULT 'USD',
+                stripe_id       TEXT,
+                status          TEXT DEFAULT 'unpaid', -- unpaid | paid | void
+                created_at      TEXT DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS payouts (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                company_id      TEXT NOT NULL,
+                entity_id       TEXT NOT NULL, -- The workforce member
+                amount          REAL NOT NULL,
+                stripe_tx_id    TEXT,
+                created_at      TEXT DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS budgets (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                company_id      TEXT NOT NULL,
+                dept_id         TEXT NOT NULL,
+                amount          REAL NOT NULL,
+                period          TEXT DEFAULT 'monthly',
+                status          TEXT DEFAULT 'active',
+                created_at      TEXT DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS tax_provisions (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                company_id      TEXT NOT NULL,
+                amount          REAL NOT NULL,
+                tax_type        TEXT DEFAULT 'income',
+                due_date        TEXT,
+                created_at      TEXT DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS funding_rounds (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                company_id      TEXT NOT NULL,
+                amount          REAL NOT NULL,
+                funding_type    TEXT NOT NULL, -- grant | equity | debt
+                source          TEXT NOT NULL,
+                terms_json      TEXT,
+                created_at      TEXT DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS messages (
+                message_id      INTEGER PRIMARY KEY AUTOINCREMENT,
+                company_id      TEXT NOT NULL,
+                sender_id       TEXT NOT NULL,
+                receiver_id     TEXT NOT NULL, -- 'dept_head' or specific employee_id
+                content         TEXT NOT NULL,
+                status          TEXT DEFAULT 'sent', -- sent | delivered | read
+                created_at      TEXT DEFAULT (datetime('now'))
+            );
+
             CREATE TABLE IF NOT EXISTS companies (
                 company_id      TEXT PRIMARY KEY,
                 name            TEXT NOT NULL,
