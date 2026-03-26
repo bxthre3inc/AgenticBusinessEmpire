@@ -127,6 +127,7 @@ class PointGuard:
         keyword_map = {
             "finance": "finance.summary",
             "money": "finance.summary",
+            "roi": "finance.summary",
             "research": "research.query",
             "find": "research.query",
             "write": "generate.text",
@@ -209,6 +210,7 @@ class ShootingGuard:
     async def _handle(self, msg: A2AMessage) -> A2AMessage:
         result = {
             "status": "ok",
+            "summary": f"Generated content for {msg.payload.get('goal', 'n/a')[:40]}...",
             "content": f"Generated content for goal: {msg.payload.get('goal', 'n/a')[:80]}",
             "model": "starting5-gen-v1"
         }
@@ -231,6 +233,7 @@ class SmallForward:
     async def _handle(self, msg: A2AMessage) -> A2AMessage:
         result = {
             "status": "ok",
+            "summary": f"Research results for {msg.payload.get('goal', 'n/a')[:40]}...",
             "findings": f"Research results for: {msg.payload.get('goal', 'n/a')[:80]}",
             "source": "starting5-search-v1"
         }
@@ -253,6 +256,7 @@ class PowerForward:
     async def _handle(self, msg: A2AMessage) -> A2AMessage:
         result = {
             "status": "ok",
+            "summary": f"Data analysis for {msg.payload.get('goal', 'n/a')[:40]}...",
             "analysis": f"Data analysis for: {msg.payload.get('goal', 'n/a')[:80]}",
             "confidence": 0.95
         }

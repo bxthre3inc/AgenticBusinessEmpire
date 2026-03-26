@@ -19,8 +19,12 @@ async def test_a2a_flow():
     print(f"Dispatching goal: {goal}")
     replies = await pg.dispatch(goal)
     
+    assert len(replies) > 0, "No replies received from A2A message bus!"
+    
     for r in replies:
-        print(f"Reply from {r.from_pos}: {r.payload.get('summary')}")
+        summary = r.payload.get("summary")
+        print(f"Reply from {r.from_pos}: {summary}")
+        assert summary is not None, f"Empty summary from {r.from_pos}!"
         if r.from_pos == "C":
             assert r.payload.get("isolation_enforced") == True
             print("✓ Financial isolation verified")
