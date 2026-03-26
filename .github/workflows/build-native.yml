@@ -73,7 +73,7 @@ jobs:
           npm install
           npm run build
           # Use non-interactive mode for android init
-          npm run tauri android init || true 
+          npm run tauri android init -- --ci
           npm run tauri android build
 
       - name: Upload APK
