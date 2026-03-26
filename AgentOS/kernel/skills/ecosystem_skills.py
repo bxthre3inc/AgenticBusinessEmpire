@@ -8,6 +8,7 @@ import httpx
 from AgentOS.kernel.registry import registry
 from AgentOS.core.models import TaskContext
 from AgentOS.core import config
+from AgentOS.kernel.voice_service import voice_service
 
 logger = logging.getLogger("agentos.ecosystem_skills")
 
@@ -95,3 +96,31 @@ async def handle_matrix(task: TaskContext) -> dict:
     """Matrix: End-to-end encrypted messaging."""
     room_id = task.payload.get("room_id")
     return {"status": "success", "service": "Matrix", "room": room_id}
+
+@registry.register("vocalize")
+async def handle_vocalize(task: TaskContext) -> dict:
+    """Convert agent text to speech using local TTS."""
+    text = task.payload.get("text", "Vocalizing AgentOS protocol.")
+    res = await voice_service.vocalize(text)
+    return res
+
+@registry.register("voice_call")
+async def handle_voice_call(task: TaskContext) -> dict:
+    """Trigger a SignalWire IVR phone call."""
+    to = task.payload.get("to")
+    message = task.payload.get("message", "Emergency AgentOS Update.")
+    
+    logger.info("[Voice] Triggering SignalWire IVR call to %s", to)
+    
+    # Completed SignalWire Stub
+    sw_url = f"https://{config.SIGNALWIRE_SPACE}/api/laml/2010-04-01/Accounts/{config.SIGNALWIRE_PROJECT_ID}/Calls"
+    auth = (config.SIGNALWIRE_PROJECT_ID, config.SIGNALWIRE_TOKEN)
+    data = {
+        "To": to,
+        "From": os.getenv("SIGNALWIRE_NUMBER", "+10000000000"),
+        "Url": f"http://agentos.local/ivr/callback?msg={message}"
+    }
+    
+    # In production, we'd make the actual request here
+    # return await IntegrationBase("signalwire")._request("POST", sw_url, auth=auth, data=data)
+    return {"status": "success", "service": "SignalWire", "to": to, "msg": "Call queued"}

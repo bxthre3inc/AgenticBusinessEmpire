@@ -64,6 +64,16 @@ else:
 # Local Ollama endpoint by default
 LLM_BASE_URL = os.getenv("AGENTOS_LLM_URL", "http://localhost:11434/v1")
 
+# Native Voice Infrastructure (STT/TTS)
+STT_ENDPOINT = os.getenv("AGENTOS_STT_URL", "http://localhost:5000/stt")
+TTS_ENDPOINT = os.getenv("AGENTOS_TTS_URL", "http://localhost:5001/tts")
+VOICE_ENGINE = "piper" if not IS_SERVER else "coqui"
+
+# Corporate Communication (SignalWire IVR)
+SIGNALWIRE_PROJECT_ID = get_secret("SIGNALWIRE_PROJECT_ID")
+SIGNALWIRE_TOKEN      = get_secret("SIGNALWIRE_TOKEN")
+SIGNALWIRE_SPACE      = get_secret("SIGNALWIRE_SPACE")
+
 # ── Logging ───────────────────────────────────────────────────────────────────
 def setup_logging(level=logging.INFO):
     logging.basicConfig(

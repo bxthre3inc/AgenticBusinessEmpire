@@ -17,6 +17,7 @@ sys.path.insert(0, str(_AGENTOS_DIR))
 
 import db
 from task_context import TaskContext
+from voice_service import voice_service
 
 app = FastAPI(title="AgentOS Kernel API", version="1.0.0")
 
@@ -100,6 +101,32 @@ async def submit_task(task: dict):
         return {"status": "accepted", "task_id": task.get("task_id")}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# --- Voice & IVR Routes ---
+
+@app.all("/ivr/callback")
+async def ivr_callback(msg: str = "Updating AgentOS status."):
+    """SignalWire IVR Callback: Responses in LAML (XML)."""
+    return {
+        "Response": {
+            "Say": msg,
+            "Pause": {"length": 1},
+            "Hangup": {}
+        }
+    }
+
+@app.post("/voice/vocalize")
+async def api_vocalize(payload: dict):
+    """API endpoint for live agent vocalization."""
+    text = payload.get("text", "")
+    if not text:
+        raise HTTPException(status_code=400, detail="Text required")
+    return await voice_service.vocalize(text)
+
+@app.post("/voice/listen")
+async def api_listen(audio_file: bytes):
+    """API endpoint for live speech-to-text."""
+    return await voice_service.listen(audio_file)
 
 if __name__ == "__main__":
     import uvicorn
