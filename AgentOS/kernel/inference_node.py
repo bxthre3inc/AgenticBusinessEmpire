@@ -101,7 +101,7 @@ async def infer_intent(prompt: str) -> dict:
                 ],
                 response_format={"type": "json_object"}
             )
-            return json.loads(response.choices[0].message.content)
+            return {**json.loads(response.choices[0].message.content), "_origin": "cloud" if mesh_saturated or profile in resource_monitor.REMOTE_INFERENCE_REQUIRED else "local"}
         except Exception as e:
             logger.warning("[Inference Node] LLM failed at %s, using fallback regex. Error: %s", base_url, e)
     

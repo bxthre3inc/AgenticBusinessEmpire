@@ -97,11 +97,19 @@ def process_all(dry_run: bool = False) -> int:
                     success += 1
                     continue
 
-            # 2. LOCAL THROTTLING (Fallback): Only slow down if delegation was skipped or failed
-            resource_monitor.throttle()
+            # 2. COORDINATED PROCESSING
+            # We skip local throttling (sleeps) if we expect to offload to Cloud GPU
+            is_cloud_eligible = (profile in [PerformanceProfile.LOW, PerformanceProfile.CRITICAL])
             
-            # 3. LOCAL INTELLIGENCE: Local node handles it (using dynamic LLM routing if needed)
-            inference_node.process(task)
+            # 3. DISPATCH & PROCESS
+            result = inference_node.process(task)
+            origin = result.get("_origin", "local")
+
+            # 4. LAST-RESORT THROTTLING: Only throttle if we processed LOCALLY under HIGH pressure.
+            # If offloaded to Cloud, we keep the local coordination loop fast.
+            if origin == "local" and profile in [PerformanceProfile.LOW, PerformanceProfile.CRITICAL]:
+                logger.info("[AgentOS] Local processing under pressure (%s). Applying last-resort throttle.", profile.value)
+                resource_monitor.throttle()
 
             # Remove from inbox after successful processing
             path.unlink(missing_ok=True)
