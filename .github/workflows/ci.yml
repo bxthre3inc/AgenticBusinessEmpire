@@ -18,6 +18,13 @@ jobs:
       with:
         python-version: "3.13"
 
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r AgentOS/requirements.txt
+        # Add extra deps if needed
+        pip install fastapi uvicorn aiosqlite httpx psutil
+
     - name: Run Core RQE Benchmarks
       run: |
         echo "Running RQE Spatial Query Latency Benchmark..."
