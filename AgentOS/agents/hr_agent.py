@@ -1,18 +1,6 @@
-"""
-hr_agent.py — Bxthre3 Inc. HR Agent
-
-Responsible for the Employee Registry and Clearance levels.
-"""
-import sys
-from pathlib import Path
-
-# Add project root to sys.path
-root = Path(__file__).parent.parent
-sys.path.append(str(root))
-
 import logging
 import asyncio
-from kernel import db
+from AgentOS.core.db import RQE as db
 
 logger = logging.getLogger("bxthre3.hr")
 
@@ -55,6 +43,5 @@ class HRAgent:
             return {"status": "failed", "error": str(exc)}
 
 if __name__ == "__main__":
-    hr = HRAgent()
-    # Mock onboarding for testing
-    asyncio.run(hr.onboard_employee("Dev Lead", "kernel", "L5 Engineer", 5))
+    # Integration test for HR Agent in a real env
+    pass

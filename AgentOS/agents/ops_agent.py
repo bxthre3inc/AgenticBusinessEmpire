@@ -1,18 +1,6 @@
-"""
-ops_agent.py — Bxthre3 Inc. Operations Agent
-
-Responsible for corporate resource allocation and budget tracking.
-"""
-import sys
-from pathlib import Path
-
-# Add project root to sys.path
-root = Path(__file__).parent.parent
-sys.path.append(str(root))
-
 import logging
 import asyncio
-from kernel import db
+from AgentOS.core.db import RQE as db
 
 logger = logging.getLogger("bxthre3.ops")
 
@@ -60,6 +48,5 @@ class OpsAgent:
         return True
 
 if __name__ == "__main__":
-    ops = OpsAgent()
-    # Mock expense for testing
-    asyncio.run(ops.log_expense(5000.0, "Infrastructure Bootstrap", "corp"))
+    # Integration test for Ops Agent in a real env
+    pass

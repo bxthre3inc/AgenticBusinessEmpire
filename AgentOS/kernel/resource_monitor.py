@@ -107,10 +107,39 @@ def check_and_throttle_system():
     profile = get_current_profile()
     
     if profile == PerformanceProfile.CRITICAL:
-        # Suspend non-critical workloads (Simulation, R&D)
-        # In a real environment, we'd iterate over PIDs or specific agent threads.
-        logger.warning("[Resource Monitor] CRITICAL PRESSURE: Suspending non-core agent threads.")
+        logger.warning("[Resource Monitor] CRITICAL PRESSURE: Suspending non-core agent processes.")
+        if _PSUTIL_AVAILABLE:
+            for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+                try:
+                    # Skip self and critical system components
+                    cmdline = " ".join(proc.info['cmdline'] or [])
+                    if any(x in cmdline for x in ["inference_node.py", "ag_server", "mcp_server", "sshd"]):
+                        continue
+                    
+                    if proc.pid == os.getpid():
+                        continue
+                        
+                    # Suspend non-critical agents
+                    if proc.pid not in _suspended_pids:
+                        logger.info("Suspending low-priority process: %s (PID: %d)", proc.info['name'], proc.pid)
+                        proc.suspend()
+                        _suspended_pids.add(proc.pid)
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
         return True
+    
+    # If pressure is relieved, resume everything
+    if profile != PerformanceProfile.CRITICAL and _suspended_pids:
+        logger.info("[Resource Monitor] Pressure relieved. Resuming agents.")
+        for pid in list(_suspended_pids):
+            try:
+                p = psutil.Process(pid)
+                p.resume()
+                logger.info("Resumed PID: %d", pid)
+            except Exception:
+                pass
+        _suspended_pids.clear()
+        
     return False
 
 def throttle() -> float:

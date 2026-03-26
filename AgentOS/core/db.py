@@ -73,7 +73,60 @@ class RQE:
         return await cls.execute("SELECT * FROM sync_events ORDER BY id DESC LIMIT $1", limit)
 
     @classmethod
+    async def init_pool(cls) -> None:
+        """Initialize the master database schema."""
+        async with aiosqlite.connect(config.MASTER_DB_PATH) as db:
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS sessions (
+                    agent_id TEXT PRIMARY KEY,
+                    status TEXT,
+                    last_seen REAL
+                )
+            """)
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS performance_metrics (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    task_id TEXT,
+                    action TEXT,
+                    prompt_len INTEGER,
+                    output_tokens INTEGER,
+                    elapsed_ms REAL,
+                    timestamp REAL
+                )
+            """)
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS sync_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    event_type TEXT,
+                    source TEXT,
+                    tenant TEXT,
+                    payload TEXT,
+                    timestamp REAL DEFAULT (strftime('%s', 'now'))
+                )
+            """)
+            await db.commit()
+
+    @classmethod
     async def init_db(cls) -> None:
         """Alias for standard initialization."""
-        # This can be used to run DDLs from schema.py if needed
-        logger.info("[DB] RQE Initialized")
+        await cls.init_pool()
+        logger.info("[DB] RQE Initialized (Master + Performance)")
+
+    @classmethod
+    async def record_performance(cls, task_id: str, action: str, prompt_len: int, 
+                                 output_tokens: int, elapsed_ms: float) -> None:
+        """Log execution metrics for CTC calibration."""
+        await cls.execute("""
+            INSERT INTO performance_metrics (task_id, action, prompt_len, output_tokens, elapsed_ms, timestamp)
+            VALUES ($1, $2, $3, $4, $5, $6)
+        """, task_id, action, prompt_len, output_tokens, elapsed_ms, time.time(), fetch=False)
+
+    @classmethod
+    async def get_performance_stats(cls, action: str, limit: int = 10) -> list[dict]:
+        """Fetch historical metrics for a specific action types."""
+        return await cls.execute("""
+            SELECT prompt_len, output_tokens, elapsed_ms 
+            FROM performance_metrics 
+            WHERE action = $1 
+            ORDER BY timestamp DESC LIMIT $2
+        """, action, limit)

@@ -6,21 +6,26 @@ Formula: ETA = T_exec + T_wait
 import time
 import random
 
-def calculate_ctc(prompt_len: int, expected_output_tokens: int = 512) -> dict:
+from AgentOS.core.db import RQE
+
+async def calculate_ctc(action: str, prompt_len: int, expected_output_tokens: int = 512) -> dict:
     """
-    Predictive CTC calculation.
-    T_exec: Based on a baseline of 50 tokens/sec (simulated).
-    T_wait: Based on current API latency + dependency overhead.
+    Predictive CTC calculation using historical metrics.
+    Fallbacks to baseline if no history exists.
     """
-    # Baseline metrics (could be dynamic in a real cluster)
-    tokens_per_sec = 45.0 
-    base_latency_sec = 1.2 # TLS handshake + mesh routing
+    history = await RQE.get_performance_stats(action, limit=5)
     
-    # T_exec calculation
-    t_exec = expected_output_tokens / tokens_per_sec
-    
-    # T_wait calculation (simulated jitter/congestion)
-    t_wait = base_latency_sec + (prompt_len / 1000.0) * 0.5
+    if history:
+        # Calculate moving average
+        avg_ms_per_token = sum(h["elapsed_ms"] / (h["output_tokens"] or 1) for h in history) / len(history)
+        avg_wait_ms = sum(h["elapsed_ms"] - (h["output_tokens"] * avg_ms_per_token) for h in history) / len(history)
+        
+        t_exec = (expected_output_tokens * avg_ms_per_token) / 1000.0
+        t_wait = max(0.2, avg_wait_ms / 1000.0)
+    else:
+        # Baseline: 45 tokens/sec, 1.2s latency
+        t_exec = expected_output_tokens / 45.0
+        t_wait = 1.2 + (prompt_len / 1000.0) * 0.5
     
     total_sec = t_exec + t_wait
     
@@ -37,7 +42,7 @@ def calculate_ctc(prompt_len: int, expected_output_tokens: int = 512) -> dict:
         "t_wait": round(t_wait, 3),
         "total_sec": round(total_sec, 3),
         "eta_human": human_readable,
-        "logic": "T_exec (Tokens/TPS) + T_wait (Mesh_Latency)"
+        "source": "live_metrics" if history else "baseline_projection"
     }
 
 def inject_ctc_header(response: dict, prompt: str) -> dict:

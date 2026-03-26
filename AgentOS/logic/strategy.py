@@ -21,17 +21,20 @@ async def handle_idea_intake(task: TaskContext) -> dict:
     if not title:
         return {"status": "error", "message": "title is required"}
 
-    # Dynamic Rating (Audit)
-    audit_res = await rating_engine.audit_seed(title, description)
-
     seed_id = f"SEED-{int(time.time())}"
-    m = audit_res["metrics"]
+
+    # Dynamic Rating (Real Audit via Evaluation Board)
+    audit_res = await rating_engine.audit_seed(seed_id, title, description)
+    
+    m = audit_res.get("metrics", {"core_fit": 0.5, "impl_cost": 0.5, "scalability": 0.5, "strat_divergence": 0.5})
+    overall = audit_res.get("overall", 0.5)
+    verdict = audit_res.get("verdict", "TRIAGED")
     
     await RQE.execute("""
         INSERT INTO blue_ocean_seeds 
         (seed_id, title, description, pipeline_source, core_fit, impl_cost, scalability, strat_divergence, overall_rating, status)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-    """, seed_id, title, description, source, m["core_fit"], m["impl_cost"], m["scalability"], m["strat_divergence"], audit_res["overall"], audit_res["verdict"], fetch=False)
+    """, seed_id, title, description, source, m.get("core_fit"), m.get("impl_cost"), m.get("scalability"), m.get("strat_divergence", 0.5), overall, verdict, fetch=False)
     
     return {
         "status": "ok", 

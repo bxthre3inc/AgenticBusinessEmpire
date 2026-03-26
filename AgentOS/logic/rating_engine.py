@@ -9,24 +9,25 @@ from AgentOS.kernel import ctc_engine
 
 logger = logging.getLogger("agentos.logic.rating_engine")
 
-async def audit_seed(title: str, description: str) -> dict:
+from AgentOS.kernel import inference_node
+
+async def audit_seed(seed_id: str, title: str, description: str) -> dict:
     """
-    Simulate a deep strategic audit. 
-    In production, this calls Lyra via the Inference Node with a specialized rating prompt.
+    Perform a live strategic audit via the Inference Node.
+    Calls the Nova + Lyra evaluation board.
     """
-    # Logic: Core Fit, Cost, Scalability, Divergence
-    # We simulate the scoring for now.
-    scores = {
-        "core_fit": 0.85, 
-        "impl_cost": 0.4, # High cost
-        "scalability": 0.9,
-        "strat_divergence": 0.1 # Very aligned
-    }
+    logger.info("[Rating Engine] Requesting live audit for seed: %s", seed_id)
     
-    overall = (scores["core_fit"] + (1 - scores["impl_cost"]) + scores["scalability"] + (1 - scores["strat_divergence"])) / 4.0
+    # Dispatch to the specialized board
+    result = await inference_node.process({
+        "task_id": f"AUDIT-{seed_id}",
+        "tenant": "tenant_zero",
+        "payload": {
+            "action": "evaluate_seed",
+            "seed_id": seed_id,
+            "title": title,
+            "description": description
+        }
+    })
     
-    return {
-        "metrics": scores,
-        "overall": round(overall, 2),
-        "verdict": "PROMOTED" if overall > 0.7 else "TRIAGED"
-    }
+    return result

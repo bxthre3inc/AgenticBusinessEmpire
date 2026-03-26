@@ -176,28 +176,28 @@ async def process(task: TaskContext | dict) -> dict:
     if not handler:
         # Check system defaults
         if action == "ping":
-            return {"status": "ok", "msg": "pong"}
-        
-        logger.error("[Inference] No handler registered for action: %s", action)
-        return {"status": "error", "message": f"Action '{action}' not recognized."}
-
-    t0 = time.perf_counter()
-    try:
-        # Silicon-speed ETA injection (CTC Mandate)
-        ctc = ctc_engine.calculate_ctc(100) # Baseline prompt len
-        eta = ctc["eta_human"]
-        
+            result = {"status": "ok", "msg": "pong"}
+        else:
+            logger.error("[Inference] No handler registered for action: %s", action)
+            return {"status": "error", "message": f"Action '{action}' not recognized."}
+    else:
         result = await handler(task)
-        elapsed_ms = (time.perf_counter() - t0) * 1e3
-        
-        final_res = {
-            **result, 
-            "eta": eta,
-            "_elapsed_ms": round(elapsed_ms, 3)
-        }
-        
-        logger.info("Task %s [%s] completed in %.2f ms.", task.task_id, action, elapsed_ms)
-        return final_res
+    # --- Universal Response Finalization ---
+    elapsed_ms = (time.perf_counter() - t0) * 1e3
+    
+    # Record performance for future CTC calibration
+    output_tokens = result.get("_tokens", 512)
+    prompt_len = len(str(task.payload))
+    await RQE.record_performance(task.task_id, action, prompt_len, output_tokens, elapsed_ms)
+
+    final_res = {
+        **result, 
+        "eta": eta,
+        "_elapsed_ms": round(elapsed_ms, 3)
+    }
+    
+    logger.info("Task %s [%s] completed in %.2f ms.", task.task_id, action, elapsed_ms)
+    return final_res
 
     except Exception as exc:
         logger.exception("Task %s failed: %s", task.task_id, exc)
