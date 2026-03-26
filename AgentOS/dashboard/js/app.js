@@ -2,7 +2,7 @@
  * Zo ↔ Antigravity Sync Dashboard — Main JS
  */
 
-const API = '';  // same origin
+const API = 'http://localhost:7880';
 let ws;
 
 // ── WebSocket ──────────────────────────────────────────────────────────────────

@@ -10,6 +10,7 @@ from AgentOS.kernel.registry import registry
 from AgentOS.core.models import TaskContext
 from AgentOS.core import config
 from AgentOS.kernel.voice_service import voice_service
+from AgentOS.kernel.skills import github_skill
 
 logger = logging.getLogger("agentos.ecosystem_skills")
 
@@ -104,6 +105,11 @@ async def handle_vocalize(task: TaskContext) -> dict:
     text = task.payload.get("text", "Vocalizing AgentOS protocol.")
     res = await voice_service.vocalize(text)
     return res
+
+@registry.register("github_sync")
+async def handle_github(task: TaskContext) -> dict:
+    """GitHub: PR review and issue management."""
+    return await github_skill.handle_github(task)
 
 @registry.register("voice_call")
 async def handle_voice_call(task: TaskContext) -> dict:
