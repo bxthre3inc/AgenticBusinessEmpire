@@ -25,9 +25,9 @@ class RQE:
     async def execute(cls, sql: str, *args, company_id: Optional[str] = None, fetch: bool = True) -> Any:
         db_path = cls.get_shard_path(company_id)
         
-        # SQLite compatibility
-        sql = sql.replace("$1", "?").replace("$2", "?").replace("$3", "?") \
-                 .replace("$4", "?").replace("$5", "?").replace("$6", "?")
+        # SQLite compatibility: Replace $1..$10 with ?
+        for i in range(10, 0, -1):
+            sql = sql.replace(f"${i}", "?")
 
         t0 = time.perf_counter()
         try:
