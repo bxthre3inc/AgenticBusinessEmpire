@@ -85,10 +85,12 @@ async def infer_intent(prompt: str) -> dict:
     
     if _OPENAI_AVAILABLE:
         try:
-            # Assign system prompt based on agent's role (extracted from payload or metadata)
-            agent_role = "default"
-            # TODO: Extract agent_role from task context or target metadata
+            # Assign system prompt based on agent's role
+            agent_role = task.payload.get("role", "default")
             
+            # 1. Fetch Department SOPs for reasoning context
+            sop_context = asyncio.run(get_department_sop(task.payload.get("department", "general")))
+
             client = openai.AsyncOpenAI(
                 api_key=api_key,
                 base_url=base_url
@@ -96,7 +98,7 @@ async def infer_intent(prompt: str) -> dict:
             response = await client.chat.completions.create(
                 model=model_id,
                 messages=[
-                    {"role": "system", "content": prompts.get_persona(agent_role)},
+                    {"role": "system", "content": f"{registry.get_persona(agent_role)}\n\n### DEPARTMENT SOPs:\n{sop_context}"},
                     {"role": "user", "content": prompt}
                 ],
                 response_format={"type": "json_object"}
@@ -160,6 +162,11 @@ _HANDLERS: dict[str, callable] = {
     "onboard":       lambda t: asyncio.run(corp.handle_onboard(t)),
     "expense":       lambda t: asyncio.run(corp.handle_expense(t)),
     "budget":        lambda t: asyncio.run(corp.handle_budget(t)),
+    
+    # Workforce & Collaboration
+    "hire":          lambda t: asyncio.run(work.handle_hire(t)),
+    "delegate":      lambda t: asyncio.run(work.handle_delegate(t)),
+    "message":       lambda t: asyncio.run(work.handle_message(t)),
 }
 
 

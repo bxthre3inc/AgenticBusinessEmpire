@@ -60,38 +60,85 @@ async def init_db():
                 target      TEXT,
                 path        TEXT,
                 payload     TEXT,
-                status      TEXT DEFAULT 'pending',
-                created_at  TEXT DEFAULT (datetime('now')),
-                resolved_at TEXT
+                department_id TEXT DEFAULT 'general',
+                employee_id TEXT DEFAULT 'kernel',
+                status      TEXT DEFAULT 'pending'
             );
 
             CREATE TABLE IF NOT EXISTS messages (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                from_agent  TEXT NOT NULL,
-                to_agent    TEXT NOT NULL,
-                topic       TEXT NOT NULL,
-                body        TEXT,
-                read        INTEGER DEFAULT 0,
-                created_at  TEXT DEFAULT (datetime('now'))
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                from_agent      TEXT NOT NULL,
+                to_agent        TEXT NOT NULL,
+                source_tenant   TEXT DEFAULT 'agentos_internal',
+                target_tenant   TEXT DEFAULT 'agentos_internal',
+                topic           TEXT NOT NULL,
+                body            TEXT,
+                read            INTEGER DEFAULT 0,
+                created_at      TEXT DEFAULT (datetime('now'))
             );
 
             CREATE TABLE IF NOT EXISTS commands (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                issuer      TEXT NOT NULL,
-                target      TEXT NOT NULL,
-                command     TEXT NOT NULL,
-                args        TEXT,
-                status      TEXT DEFAULT 'queued',
-                result      TEXT,
-                created_at  TEXT DEFAULT (datetime('now')),
-                executed_at TEXT
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                issuer          TEXT NOT NULL,
+                target          TEXT NOT NULL,
+                source_tenant   TEXT DEFAULT 'agentos_internal',
+                target_tenant   TEXT DEFAULT 'agentos_internal',
+                command         TEXT NOT NULL,
+                args            TEXT,
+                status          TEXT DEFAULT 'queued',
+                result          TEXT,
+                created_at      TEXT DEFAULT (datetime('now')),
+                executed_at     TEXT
             );
+
+            CREATE TABLE IF NOT EXISTS workforce (
+                entity_id       TEXT PRIMARY KEY,
+                tier            TEXT NOT NULL, -- agentic | human | robotic
+                department      TEXT NOT NULL,
+                tenant          TEXT NOT NULL,
+                skills          TEXT DEFAULT '[]',
+                status          TEXT DEFAULT 'active',
+                last_active     TEXT DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS companies (
+                company_id      TEXT PRIMARY KEY,
+                name            TEXT NOT NULL,
+                lifecycle_state TEXT DEFAULT 'INCUBATING', -- INCUBATING | AUTONOMOUS | HOLDING
+                parent_id       TEXT DEFAULT 'bxthre3_inc',
+                ceo_entity_id   TEXT, -- Can be Human or Agent
+                created_at      TEXT DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS entities (
+                entity_id       TEXT PRIMARY KEY,
+                type            TEXT NOT NULL, -- client | partner | funder
+                name            TEXT NOT NULL,
+                balance         REAL DEFAULT 0.0,
+                contract_data   TEXT, -- encrypted
+                tenant          TEXT NOT NULL,
+                created_at      TEXT DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS milestones (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                dept_id         TEXT NOT NULL,
+                title           TEXT NOT NULL,
+                description     TEXT,
+                deadline        TEXT,
+                status          TEXT DEFAULT 'planned', -- planned | in_progress | completed
+                tenant          TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS sops (
 
             CREATE TABLE IF NOT EXISTS resources (
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
                 name        TEXT NOT NULL UNIQUE,
                 path        TEXT NOT NULL,
                 owner       TEXT NOT NULL,
+                department  TEXT DEFAULT 'general',
+                employee    TEXT DEFAULT 'kernel',
                 mime_type   TEXT,
                 size_bytes  INTEGER DEFAULT 0,
                 checksum    TEXT,
