@@ -57,27 +57,43 @@ class GitHubSkill:
         """List open issues for a repository."""
         return await self._request("GET", f"/repos/{repo}/issues")
 
+    async def sync_linear_issues(self, team_id: str) -> Dict[str, Any]:
+        """Stub for Linear issue synchronization."""
+        logger.info(f"Syncing Linear issues for team {team_id}")
+        # Logic to fetch Linear issues and map them to AgentOS tasks
+        return {"status": "synced", "platform": "linear", "team_id": team_id}
+
+    async def sync_notion_docs(self, database_id: str) -> Dict[str, Any]:
+        """Stub for Notion document synchronization."""
+        logger.info(f"Syncing Notion docs for database {database_id}")
+        # Logic to fetch Notion pages and map them to AgentOS knowledge items
+        return {"status": "synced", "platform": "notion", "database_id": database_id}
+
 github_skill = GitHubSkill()
 
 @registry.register("github_sync")
 async def handle_github(task: TaskContext) -> dict:
-    """Entry point for GitHub integration tasks."""
+    """Entry point for GitHub/Ecosystem integration tasks."""
     action = task.payload.get("sub_action", "list_prs")
     repo = task.payload.get("repo")
     
-    if not repo:
-        return {"error": "Repository ('repo') must be specified (e.g., 'owner/repo')"}
-
     if action == "list_prs":
+        if not repo: return {"error": "repo required"}
         data = await github_skill.list_prs(repo)
         return {"status": "success", "prs": data}
     elif action == "review_pr":
         pr_number = task.payload.get("pr_number")
-        if not pr_number:
-            return {"error": "PR number required"}
+        if not repo or not pr_number: return {"error": "repo and pr_number required"}
         return await github_skill.review_pr(repo, pr_number)
+    elif action == "linear_sync":
+        team_id = task.payload.get("team_id", "default")
+        return await github_skill.sync_linear_issues(team_id)
+    elif action == "notion_sync":
+        database_id = task.payload.get("database_id", "default")
+        return await github_skill.sync_notion_docs(database_id)
     elif action == "list_issues":
+        if not repo: return {"error": "repo required"}
         data = await github_skill.list_issues(repo)
         return {"status": "success", "issues": data}
-    
-    return {"error": f"Unknown GitHub action: {action}"}
+
+

@@ -40,7 +40,41 @@ async def run_checks():
     except Exception as e:
         print(f"  ✗ Ecosystem Check Failed: {e}")
 
+    # Check 4: Mobile Bridge
+    try:
+        from AgentOS.kernel.skills import mobile_bridge
+        if hasattr(mobile_bridge, "mobile_bridge"):
+            print("  ✓ Mobile Bridge: Module implemented.")
+        else:
+            print("  ✗ Mobile Bridge: Module MISSING!")
+    except Exception as e:
+        print(f"  ✗ Mobile Bridge Check Failed: {e}")
+
+    # Check 5: Financial Service
+    try:
+        from AgentOS.kernel.skills import financial_service
+        if hasattr(financial_service, "financial_service"):
+            print("  ✓ Financial Service: Module implemented.")
+        else:
+            print("  ✗ Financial Service: Module MISSING!")
+    except Exception as e:
+        print(f"  ✗ Financial Service Check Failed: {e}")
+
+    # Check 6: Global Registry Commands
+    try:
+        from AgentOS.kernel.registry import registry
+        cmds = ["github_sync", "mobile_sync", "financial_op"]
+        registered = registry.list_commands()
+        for c in cmds:
+            if c in registered:
+                print(f"  ✓ Registry: {c} registered.")
+            else:
+                print(f"  ✗ Registry: {c} NOT found!")
+    except Exception as e:
+        print(f"  ✗ Registry Check Failed: {e}")
+
     print("\n✓ Health Check Complete.")
+
 
 if __name__ == "__main__":
     asyncio.run(run_checks())
