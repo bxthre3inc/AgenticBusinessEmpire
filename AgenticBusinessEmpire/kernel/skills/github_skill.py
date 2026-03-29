@@ -70,27 +70,33 @@ class GitHubSkill:
         
         return {"status": "reviewed", "repo": repo, "pr": pr_number, "analysis": review_result}
 
-    async def list_issues(self, repo: str) -> List[Dict[str, Any]]:
-        """List open issues for a repository."""
-        return await self._request("GET", f"/repos/{repo}/issues")
+    async def create_issue(self, repo: str, title: str, body: str) -> Dict[str, Any]:
+        """Create a new issue on GitHub."""
+        return await self._request("POST", f"/repos/{repo}/issues", json={"title": title, "body": body})
 
-    async def sync_linear_issues(self, team_id: str) -> Dict[str, Any]:
-        """Stub for Linear issue synchronization."""
-        logger.info(f"Syncing Linear issues for team {team_id}")
-        # Logic to fetch Linear issues and map them to AgenticBusinessEmpire tasks
-        return {"status": "synced", "platform": "linear", "team_id": team_id}
+    async def create_pr(self, repo: str, title: str, head: str, base: str, body: str) -> Dict[str, Any]:
+        """Create a new Pull Request."""
+        return await self._request("POST", f"/repos/{repo}/pulls", json={"title": title, "head": head, "base": base, "body": body})
 
-    async def sync_notion_docs(self, database_id: str) -> Dict[str, Any]:
-        """Stub for Notion document synchronization."""
-        logger.info(f"Syncing Notion docs for database {database_id}")
-        # Logic to fetch Notion pages and map them to AgenticBusinessEmpire knowledge items
-        return {"status": "synced", "platform": "notion", "database_id": database_id}
+    async def merge_pr(self, repo: str, pr_number: int) -> Dict[str, Any]:
+        """Merge an existing Pull Request."""
+        return await self._request("PUT", f"/repos/{repo}/pulls/{pr_number}/merge")
+
+    async def add_comment(self, repo: str, issue_number: int, body: str) -> Dict[str, Any]:
+        """Add a comment to an issue or pull request."""
+        return await self._request("POST", f"/repos/{repo}/issues/{issue_number}/comments", json={"body": body})
 
 github_skill = GitHubSkill()
 
 @registry.register("github_sync")
 async def handle_github(task: TaskContext) -> dict:
     """Entry point for GitHub/Ecosystem integration tasks."""
+    # ROBUSTNESS: Prefer server for GitHub heavy lifting
+    if not config.IS_SERVER and not task.payload.get("_delegated"):
+        from AgenticBusinessEmpire.sync_engine.balancer import balancer
+        if balancer.should_offload(threshold=0.0): # Always offload GH tasks if not on server
+             return {"status": "delegated", "reason": "server_preferred_for_github"}
+
     action = task.payload.get("sub_action", "list_prs")
     repo = task.payload.get("repo")
     
@@ -102,6 +108,27 @@ async def handle_github(task: TaskContext) -> dict:
         pr_number = task.payload.get("pr_number")
         if not repo or not pr_number: return {"error": "repo and pr_number required"}
         return await github_skill.review_pr(repo, pr_number)
+    elif action == "create_issue":
+        title = task.payload.get("title")
+        body = task.payload.get("body", "")
+        if not repo or not title: return {"error": "repo and title required"}
+        return await github_skill.create_issue(repo, title, body)
+    elif action == "create_pr":
+        title = task.payload.get("title")
+        head = task.payload.get("head")
+        base = task.payload.get("base", "master")
+        body = task.payload.get("body", "")
+        if not repo or not title or not head: return {"error": "repo, title, and head required"}
+        return await github_skill.create_pr(repo, title, head, base, body)
+    elif action == "merge_pr":
+        pr_number = task.payload.get("pr_number")
+        if not repo or not pr_number: return {"error": "repo and pr_number required"}
+        return await github_skill.merge_pr(repo, pr_number)
+    elif action == "add_comment":
+        issue_number = task.payload.get("issue_number")
+        body = task.payload.get("body")
+        if not repo or not issue_number or not body: return {"error": "repo, issue_number, and body required"}
+        return await github_skill.add_comment(repo, issue_number, body)
     elif action == "linear_sync":
         team_id = task.payload.get("team_id", "default")
         return await github_skill.sync_linear_issues(team_id)

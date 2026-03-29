@@ -150,6 +150,18 @@ class RQE:
                 )
             """)
             await db.execute("""
+                CREATE TABLE IF NOT EXISTS workforce (
+                    employee_id TEXT PRIMARY KEY,
+                    company_id TEXT,
+                    department_id TEXT,
+                    employee_type TEXT,
+                    name TEXT,
+                    role TEXT,
+                    status TEXT DEFAULT 'idle',
+                    metadata TEXT
+                )
+            """)
+            await db.execute("""
                 CREATE TABLE IF NOT EXISTS sync_events (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     event_type TEXT,

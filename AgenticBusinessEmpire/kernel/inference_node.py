@@ -47,6 +47,7 @@ import psutil # Add to requirements.txt if not present
 import resource_monitor
 from resource_monitor import PerformanceProfile
 import ctc_engine
+from AgenticBusinessEmpire.sync_engine.balancer import balancer
 
 # Link to peer bridge for mesh-wide status
 try:
@@ -181,30 +182,22 @@ async def process(task: TaskContext | dict) -> dict:
             payload=task.get("payload", {})
         )
 
-    # Advanced Decentralized Load Balancing
-    profile = resource_monitor.get_current_profile()
+    # Advanced Decentralized Load Balancing (FOXXD S67 / Chromebook Optimized)
     image_task = "image" in task.payload
     
-    # Probabilistic Shedding Thresholds
-    shed_chance = 0.0
-    if profile == PerformanceProfile.CRITICAL:
-        shed_chance = 1.0
-    elif profile == PerformanceProfile.LOW:
-        shed_chance = 0.5
-    elif profile == PerformanceProfile.BALANCED:
-        shed_chance = 0.1
-        
+    # Use MeshBalancer instead of hardcoded percentages
+    should_offload = balancer.should_offload()
+    
     # Strategic Routing: Always attempt to offload heavy multimodal tasks to servers if we are on a device
     should_strategic_offload = image_task and not config.IS_SERVER
     
-    if (random.random() < shed_chance or should_strategic_offload) and peer_bridge:
+    if (should_offload or should_strategic_offload) and peer_bridge:
         if not task.payload.get("_delegated"):
             # If it's a strategic offload, we specifically request a server
             reqs = {"is_server": True} if should_strategic_offload else None
             
-            logger.info("[Inference Node] [%s] %s. Delegating task %s to mesh.", 
-                        profile.value.upper(), 
-                        "Strategic multimodal routing" if should_strategic_offload else "Probabilistic load shedding",
+            logger.info("[Inference Node] [OFFLOAD] %s. Delegating task %s to mesh.", 
+                        "Strategic multimodal routing" if should_strategic_offload else "Pressure-based load balancing",
                         task.task_id)
             
             task.payload["_delegated"] = True
@@ -215,7 +208,7 @@ async def process(task: TaskContext | dict) -> dict:
                 return {
                     "status": "delegated", 
                     "message": "Task intelligently routed to mesh peer.",
-                    "strategy": "multimodal_offload" if should_strategic_offload else "load_shedding"
+                    "strategy": "multimodal_offload" if should_strategic_offload else "pressure_aware_offload"
                 }
     
     # --- Autonomous Workforce Delegation Phase ---
